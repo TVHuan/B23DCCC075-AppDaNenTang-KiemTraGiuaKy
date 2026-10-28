@@ -1,0 +1,25 @@
+# node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Android / Gradle / Build
+**/build/
+**/.gradle/
+**/local.properties
+**/.idea/
+**/.cxx/
+*.iml
+*.hprof
+**/.kotlin/
+
+# iOS / Xcode
+**/.DS_Store
+**/DerivedData/
+**/Pods/
+**/.xcode.env.local
+
+# Temporary files
+*.jsbundle
+.metro-health-check*
+*.log

@@ -1,0 +1,10 @@
+{
+  "name": "app-kiem-tra-giua-ky",
+  "version": "1.0.0",
+  "description": "Ứng dụng Quản lý Thư viện - Bài kiểm tra giữa kỳ React Native CLI",
+  "scripts": {
+    "start": "npm start --prefix LibraryApp",
+    "android": "npm run android --prefix LibraryApp",
+    "ios": "npm run ios --prefix LibraryApp"
+  }
+}
