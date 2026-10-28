@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme/colors';
 
 interface StatCardProps {
@@ -11,13 +12,19 @@ export const StatCard: React.FC<StatCardProps> = ({ totalBooks, totalBorrowed })
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.label}>Tổng đầu sách</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.label}>Tổng đầu sách</Text>
+          <Ionicons name="library-outline" size={16} color={colors.primary} />
+        </View>
         <Text style={styles.valuePrimary}>{totalBooks}</Text>
         <Text style={styles.subtext}>sách trong thư viện</Text>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>Đang cho mượn</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.label}>Đang cho mượn</Text>
+          <Ionicons name="book-outline" size={16} color={colors.warning} />
+        </View>
         <Text style={styles.valueWarning}>{totalBorrowed}</Text>
         <Text style={styles.subtext}>cuốn đang lưu hành</Text>
       </View>
@@ -47,13 +54,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 3,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
   label: {
     fontSize: 12,
     fontWeight: '600',
     color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 4,
   },
   valuePrimary: {
     fontSize: 26,

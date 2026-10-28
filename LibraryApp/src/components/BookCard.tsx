@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme/colors';
 import type { Book } from '../types/book';
 
@@ -21,7 +22,7 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onPress, onLongPress }
       delayLongPress={350}
       activeOpacity={0.7}
     >
-      {/* Thể loại & Trạng thái còn sách */}
+      {/* Thể loại & Trạng thái tồn kho */}
       <View style={styles.topRow}>
         <View style={styles.categoryBadge}>
           <Text style={styles.categoryText}>{book.category}</Text>
@@ -45,15 +46,24 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onPress, onLongPress }
       </Text>
 
       {/* Tác giả */}
-      <Text style={styles.author} numberOfLines={1}>
-        {book.author}
-      </Text>
+      <View style={styles.authorRow}>
+        <Ionicons name="person-outline" size={13} color={colors.textSecondary} style={styles.authorIcon} />
+        <Text style={styles.author} numberOfLines={1}>
+          {book.author}
+        </Text>
+      </View>
 
       {/* Hàng thông tin phụ */}
       <View style={styles.metaRow}>
-        <Text style={styles.metaText}>Năm {book.year}</Text>
+        <View style={styles.metaItem}>
+          <Ionicons name="calendar-outline" size={12} color={colors.textMuted} style={styles.metaIcon} />
+          <Text style={styles.metaText}>Năm {book.year}</Text>
+        </View>
         <Text style={styles.metaDot}>•</Text>
-        <Text style={styles.metaText}>Đang mượn: {book.borrowed}/{book.quantity}</Text>
+        <View style={styles.metaItem}>
+          <Ionicons name="people-outline" size={12} color={colors.textMuted} style={styles.metaIcon} />
+          <Text style={styles.metaText}>Đang mượn: {book.borrowed}/{book.quantity}</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -123,15 +133,29 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: 4,
   },
+  authorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  authorIcon: {
+    marginRight: 4,
+  },
   author: {
     fontSize: 13,
     color: colors.textSecondary,
     fontWeight: '400',
-    marginBottom: 10,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  metaIcon: {
+    marginRight: 4,
   },
   metaText: {
     fontSize: 12,
@@ -141,6 +165,6 @@ const styles = StyleSheet.create({
   metaDot: {
     fontSize: 12,
     color: colors.textMuted,
-    marginHorizontal: 6,
+    marginHorizontal: 8,
   },
 });

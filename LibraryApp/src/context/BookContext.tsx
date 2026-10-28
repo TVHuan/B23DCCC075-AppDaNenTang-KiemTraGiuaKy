@@ -8,7 +8,12 @@ import React, {
   type ReactNode,
 } from 'react';
 import { loadBooksFromStorage, saveBooksToStorage } from '../storage/bookStorage';
-import type { Book, BookFormData } from '../types/book';
+import type { Book, BookFormData, BorrowRecord } from '../types/book';
+
+interface BorrowerInput {
+  name: string;
+  phone?: string;
+}
 
 interface BookContextType {
   books: Book[];
@@ -16,8 +21,8 @@ interface BookContextType {
   addBook: (bookData: BookFormData) => Promise<Book>;
   updateBook: (updatedBook: Book) => Promise<void>;
   deleteBook: (id: string) => Promise<boolean>;
-  borrowBook: (id: string) => Promise<boolean>;
-  returnBook: (id: string) => Promise<boolean>;
+  borrowBook: (id: string, borrowerInfo?: BorrowerInput) => Promise<boolean>;
+  returnBook: (id: string, borrowerRecordId?: string) => Promise<boolean>;
   getBookById: (id: string) => Book | null;
   totalBooks: number;
   totalBorrowed: number;
@@ -61,6 +66,7 @@ export const BookProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         year: Number(bookData.year),
         quantity: Number(bookData.quantity),
         borrowed: 0,
+        borrowers: [],
       };
       const updated = [newBook, ...books];
       await updateAndPersist(updated);
@@ -82,6 +88,7 @@ export const BookProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             year: Number(updatedBook.year),
             quantity: Number(updatedBook.quantity),
             borrowed: Number(b.borrowed) || 0,
+            borrowers: b.borrowers || [],
           };
         }
         return b;
@@ -106,17 +113,34 @@ export const BookProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     [books, updateAndPersist]
   );
 
-  // Cho mượn sách (Câu 4)
+  // Cho mượn sách kèm thông tin người mượn (Câu 4)
   const borrowBook = useCallback(
-    async (id: string): Promise<boolean> => {
+    async (id: string, borrowerInfo?: BorrowerInput): Promise<boolean> => {
       const target = books.find((b) => b.id === id);
       if (!target) return false;
       const remaining = target.quantity - target.borrowed;
       if (remaining <= 0) return false;
 
+      const now = new Date();
+      const dateStr = `${String(now.getDate()).padStart(2, '0')}/${String(
+        now.getMonth() + 1
+      ).padStart(2, '0')}/${now.getFullYear()}`;
+
+      const newRecord: BorrowRecord = {
+        id: Date.now().toString(),
+        borrowerName: borrowerInfo?.name?.trim() || 'Bạn đọc',
+        borrowerPhone: borrowerInfo?.phone?.trim() || '',
+        borrowDate: dateStr,
+      };
+
       const updated = books.map((b) => {
         if (b.id === id) {
-          return { ...b, borrowed: b.borrowed + 1 };
+          const currentBorrowers = b.borrowers || [];
+          return {
+            ...b,
+            borrowed: b.borrowed + 1,
+            borrowers: [newRecord, ...currentBorrowers],
+          };
         }
         return b;
       });
@@ -128,14 +152,24 @@ export const BookProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Nhận trả sách (Câu 4)
   const returnBook = useCallback(
-    async (id: string): Promise<boolean> => {
+    async (id: string, borrowerRecordId?: string): Promise<boolean> => {
       const target = books.find((b) => b.id === id);
       if (!target) return false;
       if (target.borrowed <= 0) return false;
 
       const updated = books.map((b) => {
         if (b.id === id) {
-          return { ...b, borrowed: b.borrowed - 1 };
+          let updatedBorrowers = b.borrowers || [];
+          if (borrowerRecordId) {
+            updatedBorrowers = updatedBorrowers.filter((r) => r.id !== borrowerRecordId);
+          } else if (updatedBorrowers.length > 0) {
+            updatedBorrowers = updatedBorrowers.slice(1);
+          }
+          return {
+            ...b,
+            borrowed: Math.max(0, b.borrowed - 1),
+            borrowers: updatedBorrowers,
+          };
         }
         return b;
       });

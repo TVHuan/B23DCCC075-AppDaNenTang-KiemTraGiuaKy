@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useBooks } from '../context/BookContext';
 import { colors } from '../theme/colors';
 import { StatCard } from '../components/StatCard';
@@ -96,6 +97,7 @@ export const BookListScreen: React.FC<Props> = ({ navigation }) => {
 
     return (
       <View style={styles.emptyContainer}>
+        <Ionicons name="search-outline" size={36} color={colors.textMuted} style={styles.emptyIcon} />
         <Text style={styles.emptyTitle}>
           {hasFilter ? 'Không tìm thấy kết quả' : 'Chưa có sách nào trong thư viện'}
         </Text>
@@ -164,7 +166,8 @@ export const BookListScreen: React.FC<Props> = ({ navigation }) => {
         onPress={() => navigation.navigate('BookForm')}
         activeOpacity={0.85}
       >
-        <Text style={styles.fabText}>+ Thêm sách</Text>
+        <Ionicons name="add" size={18} color="#FFFFFF" style={styles.fabIcon} />
+        <Text style={styles.fabText}>Thêm sách</Text>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -224,6 +227,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  emptyIcon: {
+    marginBottom: 10,
+  },
   emptyTitle: {
     fontSize: 15,
     fontWeight: '600',
@@ -241,15 +247,20 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 24,
     right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.primary,
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 18,
     borderRadius: 24,
     elevation: 4,
     shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
     shadowRadius: 5,
+  },
+  fabIcon: {
+    marginRight: 4,
   },
   fabText: {
     color: '#FFFFFF',

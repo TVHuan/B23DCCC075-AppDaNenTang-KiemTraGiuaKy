@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { type ReactNode } from 'react';
 import {
   TouchableOpacity,
   Text,
@@ -18,7 +18,7 @@ interface CustomButtonProps {
   variant?: ButtonVariant;
   style?: StyleProp<ViewStyle>;
   textStyle?: StyleProp<TextStyle>;
-  icon?: string;
+  icon?: ReactNode;
 }
 
 export const CustomButton: React.FC<CustomButtonProps> = ({
@@ -68,8 +68,10 @@ export const CustomButton: React.FC<CustomButtonProps> = ({
       disabled={disabled}
       activeOpacity={0.7}
     >
-      {icon ? <Text style={styles.iconText}>{icon} </Text> : null}
-      <Text style={[getTextStyle(), textStyle]}>{title}</Text>
+      {icon ? <>{icon}</> : null}
+      <Text style={[getTextStyle(), icon ? styles.textWithIcon : null, textStyle]}>
+        {title}
+      </Text>
     </TouchableOpacity>
   );
 };
@@ -100,7 +102,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  // Nút vô hiệu hoá chuyển sang xám (Câu 4 & 7)
   disabledButton: {
     backgroundColor: colors.disabled,
   },
@@ -119,7 +120,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  iconText: {
-    fontSize: 15,
+  textWithIcon: {
+    marginLeft: 6,
   },
 });

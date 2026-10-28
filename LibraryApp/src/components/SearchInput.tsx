@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, TextInput, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme/colors';
 
 interface SearchInputProps {
@@ -17,7 +18,12 @@ export const SearchInput: React.FC<SearchInputProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.searchSymbol}>⌕</Text>
+      <Ionicons
+        name="search-outline"
+        size={18}
+        color={colors.textSecondary}
+        style={styles.searchIcon}
+      />
       <TextInput
         style={styles.input}
         value={value}
@@ -35,7 +41,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
           activeOpacity={0.6}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Text style={styles.clearIcon}>×</Text>
+          <Ionicons name="close-circle" size={18} color={colors.textMuted} />
         </TouchableOpacity>
       ) : null}
     </View>
@@ -55,12 +61,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     height: 44,
   },
-  searchSymbol: {
-    fontSize: 22,
-    color: colors.textSecondary,
+  searchIcon: {
     marginRight: 8,
-    lineHeight: 24,
-    marginTop: -2,
   },
   input: {
     flex: 1,
@@ -70,18 +72,7 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
   clearButton: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.border,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  clearIcon: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    fontWeight: '600',
-    lineHeight: 16,
-    marginTop: -2,
   },
 });
