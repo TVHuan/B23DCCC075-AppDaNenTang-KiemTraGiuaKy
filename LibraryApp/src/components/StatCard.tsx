@@ -1,16 +1,22 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors } from '../theme/colors';
 
 interface StatCardProps {
   totalBooks: number;
   totalBorrowed: number;
+  onPressBorrowed?: () => void;
 }
 
-export const StatCard: React.FC<StatCardProps> = ({ totalBooks, totalBorrowed }) => {
+export const StatCard: React.FC<StatCardProps> = ({
+  totalBooks,
+  totalBorrowed,
+  onPressBorrowed,
+}) => {
   return (
     <View style={styles.container}>
+      {/* Thẻ 1: Tổng số đầu sách */}
       <View style={styles.card}>
         <View style={styles.headerRow}>
           <Text style={styles.label}>Tổng đầu sách</Text>
@@ -20,14 +26,19 @@ export const StatCard: React.FC<StatCardProps> = ({ totalBooks, totalBorrowed })
         <Text style={styles.subtext}>sách trong thư viện</Text>
       </View>
 
-      <View style={styles.card}>
+      {/* Thẻ 2: Đang cho mượn (Bấm vào để mở danh sách chi tiết mượn) */}
+      <TouchableOpacity
+        style={[styles.card, styles.cardInteractive]}
+        onPress={onPressBorrowed}
+        activeOpacity={0.7}
+      >
         <View style={styles.headerRow}>
           <Text style={styles.label}>Đang cho mượn</Text>
-          <Ionicons name="book-outline" size={16} color={colors.warning} />
+          <Ionicons name="chevron-forward-outline" size={15} color={colors.warning} />
         </View>
         <Text style={styles.valueWarning}>{totalBorrowed}</Text>
-        <Text style={styles.subtext}>cuốn đang lưu hành</Text>
-      </View>
+        <Text style={styles.subtext}>bấm để xem danh sách</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -53,6 +64,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 3,
+  },
+  cardInteractive: {
+    borderColor: '#FDE68A', // Viền vàng cam nhẹ
+    backgroundColor: '#FFFDF5',
   },
   headerRow: {
     flexDirection: 'row',

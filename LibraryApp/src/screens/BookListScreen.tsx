@@ -18,6 +18,7 @@ import { StatCard } from '../components/StatCard';
 import { SearchInput } from '../components/SearchInput';
 import { CategoryFilter } from '../components/CategoryFilter';
 import { BookCard } from '../components/BookCard';
+import { BorrowedListModal } from '../components/BorrowedListModal';
 import type { RootStackParamList } from '../types/navigation';
 import type { FilterCategory } from '../constants/categories';
 import type { Book } from '../types/book';
@@ -30,6 +31,9 @@ export const BookListScreen: React.FC<Props> = ({ navigation }) => {
   // State Tìm kiếm và Lọc (Câu 5)
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<FilterCategory>('Tất cả');
+
+  // State mở Modal danh sách đang mượn khi ấn vào card Đang cho mượn
+  const [isBorrowedModalVisible, setIsBorrowedModalVisible] = useState<boolean>(false);
 
   // Lọc dữ liệu kết hợp đồng thời (Câu 5)
   const filteredBooks = useMemo(() => {
@@ -132,8 +136,12 @@ export const BookListScreen: React.FC<Props> = ({ navigation }) => {
         )}
         ListHeaderComponent={
           <>
-            {/* Thống kê (Câu 1) */}
-            <StatCard totalBooks={totalBooks} totalBorrowed={totalBorrowed} />
+            {/* Thống kê (Câu 1) - Bấm vào card Đang cho mượn mở danh sách đang mượn */}
+            <StatCard
+              totalBooks={totalBooks}
+              totalBorrowed={totalBorrowed}
+              onPressBorrowed={() => setIsBorrowedModalVisible(true)}
+            />
 
             {/* Ô tìm kiếm (Câu 5) */}
             <SearchInput
@@ -169,6 +177,12 @@ export const BookListScreen: React.FC<Props> = ({ navigation }) => {
         <Ionicons name="add" size={18} color="#FFFFFF" style={styles.fabIcon} />
         <Text style={styles.fabText}>Thêm sách</Text>
       </TouchableOpacity>
+
+      {/* Modal danh sách đang cho mượn khi ấn vào Card Đang cho mượn */}
+      <BorrowedListModal
+        visible={isBorrowedModalVisible}
+        onClose={() => setIsBorrowedModalVisible(false)}
+      />
     </SafeAreaView>
   );
 };

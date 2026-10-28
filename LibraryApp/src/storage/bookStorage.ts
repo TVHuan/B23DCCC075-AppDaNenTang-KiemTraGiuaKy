@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { INITIAL_BOOKS } from '../constants/initialBooks';
 import type { Book } from '../types/book';
 
-const STORAGE_KEY = '@library_app_books_v1';
+const STORAGE_KEY = '@library_app_books_v2';
 
 export const loadBooksFromStorage = async (): Promise<Book[]> => {
   try {

@@ -24,17 +24,29 @@ import type { BorrowRecord } from '../types/book';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BookDetail'>;
 
+// Hàm tạo chuỗi ngày DD/MM/YYYY
+const formatDate = (date: Date): string => {
+  const d = String(date.getDate()).padStart(2, '0');
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const y = date.getFullYear();
+  return `${d}/${m}/${y}`;
+};
+
 export const BookDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const { bookId } = route.params;
   const { getBookById, borrowBook, returnBook, deleteBook } = useBooks();
 
   const book = getBookById(bookId);
 
-  // State Modal nhập thông tin người mượn
+  // State Modal mượn sách với đầy đủ thông tin: họ tên, mã SV, SĐT, ngày mượn, ngày trả, số lượng mượn
   const [isBorrowModalVisible, setIsBorrowModalVisible] = useState(false);
   const [borrowerName, setBorrowerName] = useState('');
+  const [studentId, setStudentId] = useState('');
   const [borrowerPhone, setBorrowerPhone] = useState('');
-  const [borrowerNameError, setBorrowerNameError] = useState('');
+  const [borrowDate, setBorrowDate] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  const [borrowCountStr, setBorrowCountStr] = useState('1');
+  const [modalErrors, setModalErrors] = useState<{ [key: string]: string }>({});
 
   // Nút Sửa & Xoá gọn gàng trên Header (Góc phải)
   useLayoutEffect(() => {
@@ -84,35 +96,75 @@ export const BookDetailScreen: React.FC<Props> = ({ navigation, route }) => {
   const canBorrow = remaining > 0;
   const canReturn = Number(book.borrowed) > 0;
 
-  // Mở modal nhập thông tin mượn
+  // Mở modal mượn sách và điền sẵn ngày hiện tại + hạn 7 ngày
   const handleOpenBorrowModal = () => {
     if (!canBorrow) {
-      Alert.alert('Thông báo', 'Sách này đã hết, không thể cho mượn.');
+      Alert.alert('Thông báo', 'Sách này đã hết trong kho, không thể cho mượn.');
       return;
     }
+    const today = new Date();
+    const sevenDaysLater = new Date();
+    sevenDaysLater.setDate(today.getDate() + 7);
+
     setBorrowerName('');
+    setStudentId('');
     setBorrowerPhone('');
-    setBorrowerNameError('');
+    setBorrowDate(formatDate(today));
+    setDueDate(formatDate(sevenDaysLater));
+    setBorrowCountStr('1');
+    setModalErrors({});
     setIsBorrowModalVisible(true);
   };
 
-  // Xác nhận mượn sách kèm thông tin người mượn
+  // Xác nhận mượn sách với validation chi tiết
   const handleConfirmBorrow = async () => {
+    const errs: { [key: string]: string } = {};
+
     if (!borrowerName.trim()) {
-      setBorrowerNameError('Vui lòng nhập họ tên người mượn');
+      errs.name = 'Vui lòng nhập họ tên người mượn';
+    }
+    if (!studentId.trim()) {
+      errs.studentId = 'Vui lòng nhập mã sinh viên';
+    }
+    if (!borrowerPhone.trim()) {
+      errs.phone = 'Vui lòng nhập số điện thoại';
+    }
+    if (!borrowDate.trim()) {
+      errs.borrowDate = 'Vui lòng nhập ngày mượn';
+    }
+    if (!dueDate.trim()) {
+      errs.dueDate = 'Vui lòng nhập ngày hẹn trả';
+    }
+
+    const countNum = parseInt(borrowCountStr, 10);
+    if (isNaN(countNum) || countNum <= 0) {
+      errs.count = 'Số lượng mượn phải lớn hơn 0';
+    } else if (countNum > remaining) {
+      errs.count = `Chỉ còn ${remaining} cuốn trong kho`;
+    }
+
+    if (Object.keys(errs).length > 0) {
+      setModalErrors(errs);
       return;
     }
 
     const success = await borrowBook(book.id, {
       name: borrowerName.trim(),
+      studentId: studentId.trim(),
       phone: borrowerPhone.trim(),
+      borrowDate: borrowDate.trim(),
+      dueDate: dueDate.trim(),
+      borrowCount: countNum,
     });
 
     if (success) {
       setIsBorrowModalVisible(false);
-      Alert.alert('Thành công', `Đã cho mượn 1 cuốn cho bạn đọc "${borrowerName.trim()}".`);
+      Alert.alert(
+        'Thành công',
+        `Đã cho sinh viên ${borrowerName.trim()} (${studentId.trim()}) mượn ${countNum} cuốn.`
+      );
     } else {
-      Alert.alert('Lỗi', 'Không thể thực hiện cho mượn sách.');
+      Alert.alert('Lỗi', 'Không thể thực hiện mượn sách.');
     }
   };
 
@@ -123,14 +175,17 @@ export const BookDetailScreen: React.FC<Props> = ({ navigation, route }) => {
       return;
     }
 
-    const targetName = record ? `của bạn đọc "${record.borrowerName}"` : '';
+    const targetInfo = record
+      ? `của sinh viên "${record.borrowerName}" (${record.borrowCount || 1} cuốn)`
+      : '1 cuốn sách';
+
     Alert.alert(
       'Xác nhận nhận trả',
-      `Bạn có chắc chắn nhận lại 1 cuốn sách ${targetName}?`,
+      `Bạn có chắc chắn nhận lại ${targetInfo}?`,
       [
         { text: 'Huỷ', style: 'cancel' },
         {
-          text: 'Xác nhận trả',
+          text: 'Nhận trả',
           onPress: async () => {
             const success = await returnBook(book.id, record?.id);
             if (success) {
@@ -142,7 +197,7 @@ export const BookDetailScreen: React.FC<Props> = ({ navigation, route }) => {
     );
   };
 
-  // Xử lý Xoá sách (Câu 3)
+  // Xử lý Xoá sách
   function handleDelete() {
     if (!book) return;
     if (book.borrowed > 0) {
@@ -250,7 +305,7 @@ export const BookDetailScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
         </View>
 
-        {/* Nghiệp vụ Mượn / Trả sách (Câu 4) */}
+        {/* Nghiệp vụ Mượn / Trả sách */}
         <View style={styles.actionsCard}>
           <Text style={styles.actionCardTitle}>Thao tác mượn và trả sách</Text>
           <View style={styles.actionButtonsRow}>
@@ -284,11 +339,13 @@ export const BookDetailScreen: React.FC<Props> = ({ navigation, route }) => {
           </View>
         </View>
 
-        {/* Danh sách bạn đọc đang mượn sách này */}
+        {/* Danh sách người mượn cuốn sách này kèm số lượng cuốn mượn */}
         {book.borrowers && book.borrowers.length > 0 && (
           <View style={styles.borrowersCard}>
             <View style={styles.borrowersHeader}>
-              <Text style={styles.borrowersTitle}>Bạn đọc đang mượn ({book.borrowers.length})</Text>
+              <Text style={styles.borrowersTitle}>
+                Người đang mượn sách này ({book.borrowers.length})
+              </Text>
             </View>
             {book.borrowers.map((b, index) => (
               <View
@@ -299,16 +356,23 @@ export const BookDetailScreen: React.FC<Props> = ({ navigation, route }) => {
                 ]}
               >
                 <View style={styles.borrowerInfo}>
-                  <Text style={styles.borrowerName}>{b.borrowerName}</Text>
-                  <View style={styles.borrowerMeta}>
-                    {b.borrowerPhone ? (
-                      <Text style={styles.borrowerPhone}>{b.borrowerPhone} • </Text>
-                    ) : null}
-                    <Text style={styles.borrowDate}>Ngày mượn: {b.borrowDate}</Text>
+                  <View style={styles.borrowerTop}>
+                    <Text style={styles.borrowerName}>{b.borrowerName}</Text>
+                    <View style={styles.countBadge}>
+                      <Text style={styles.countBadgeText}>Mượn: {b.borrowCount || 1} cuốn</Text>
+                    </View>
                   </View>
+
+                  <Text style={styles.borrowerSub}>
+                    Mã SV: <Text style={styles.highlightText}>{b.studentId || 'Chưa có'}</Text> • SĐT: {b.borrowerPhone || 'Chưa có'}
+                  </Text>
+
+                  <Text style={styles.dateInfoText}>
+                    📅 Mượn: {b.borrowDate} • Hạn trả: <Text style={{ color: colors.warning, fontWeight: '600' }}>{b.dueDate}</Text>
+                  </Text>
                 </View>
 
-                {/* Nút Nhận trả trực tiếp từng bạn đọc */}
+                {/* Nút Nhận trả sách cho người này */}
                 <TouchableOpacity
                   style={styles.inlineReturnBtn}
                   onPress={() => handleReturn(b)}
@@ -343,7 +407,7 @@ export const BookDetailScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>
       </ScrollView>
 
-      {/* Modal Nhập Thông Tin Người Mượn (Không bị bàn phím che) */}
+      {/* Modal Nhập Đầy Đủ Thông Tin Người Mượn (Không bị bàn phím che) */}
       <Modal
         visible={isBorrowModalVisible}
         transparent
@@ -358,7 +422,7 @@ export const BookDetailScreen: React.FC<Props> = ({ navigation, route }) => {
             >
               <View style={styles.modalContent}>
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Thông tin người mượn</Text>
+                  <Text style={styles.modalTitle}>Thông tin cho mượn sách</Text>
                   <TouchableOpacity
                     onPress={() => setIsBorrowModalVisible(false)}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
@@ -368,44 +432,130 @@ export const BookDetailScreen: React.FC<Props> = ({ navigation, route }) => {
                 </View>
 
                 <Text style={styles.modalBookTitle} numberOfLines={1}>
-                  📖 {book.title}
+                  📚 {book.title} (Còn: {remaining} cuốn)
                 </Text>
 
-                {/* Ô nhập Họ và tên */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>
-                    Họ và tên người mượn <Text style={styles.requiredStar}>*</Text>
-                  </Text>
-                  <TextInput
-                    style={[styles.modalInput, borrowerNameError ? styles.modalInputError : null]}
-                    value={borrowerName}
-                    onChangeText={(text) => {
-                      setBorrowerName(text);
-                      if (borrowerNameError) setBorrowerNameError('');
-                    }}
-                    placeholder="Ví dụ: Nguyễn Văn Minh"
-                    placeholderTextColor={colors.textMuted}
-                    autoFocus
-                  />
-                  {borrowerNameError ? (
-                    <Text style={styles.modalErrorText}>{borrowerNameError}</Text>
-                  ) : null}
-                </View>
+                <ScrollView
+                  style={{ maxHeight: 400 }}
+                  showsVerticalScrollIndicator={false}
+                  keyboardShouldPersistTaps="handled"
+                >
+                  {/* Họ và tên */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>
+                      Họ và tên người mượn <Text style={styles.requiredStar}>*</Text>
+                    </Text>
+                    <TextInput
+                      style={[styles.modalInput, modalErrors.name ? styles.modalInputError : null]}
+                      value={borrowerName}
+                      onChangeText={(t) => {
+                        setBorrowerName(t);
+                        if (modalErrors.name) setModalErrors((prev) => ({ ...prev, name: '' }));
+                      }}
+                      placeholder="Ví dụ: Nguyễn Văn Minh"
+                      placeholderTextColor={colors.textMuted}
+                    />
+                    {modalErrors.name && <Text style={styles.modalErrorText}>{modalErrors.name}</Text>}
+                  </View>
 
-                {/* Ô nhập SĐT / Mã thẻ */}
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Số điện thoại / Mã sinh viên (tuỳ chọn)</Text>
-                  <TextInput
-                    style={styles.modalInput}
-                    value={borrowerPhone}
-                    onChangeText={setBorrowerPhone}
-                    placeholder="Ví dụ: 0912345678 hoặc B23DCCC..."
-                    placeholderTextColor={colors.textMuted}
-                    keyboardType="phone-pad"
-                  />
-                </View>
+                  {/* Mã sinh viên & Số điện thoại */}
+                  <View style={styles.twoColRow}>
+                    <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
+                      <Text style={styles.inputLabel}>
+                        Mã sinh viên <Text style={styles.requiredStar}>*</Text>
+                      </Text>
+                      <TextInput
+                        style={[styles.modalInput, modalErrors.studentId ? styles.modalInputError : null]}
+                        value={studentId}
+                        onChangeText={(t) => {
+                          setStudentId(t);
+                          if (modalErrors.studentId) setModalErrors((prev) => ({ ...prev, studentId: '' }));
+                        }}
+                        placeholder="B23DCCC..."
+                        placeholderTextColor={colors.textMuted}
+                        autoCapitalize="characters"
+                      />
+                      {modalErrors.studentId && <Text style={styles.modalErrorText}>{modalErrors.studentId}</Text>}
+                    </View>
 
-                {/* Nút hành động trong Modal */}
+                    <View style={[styles.inputGroup, { flex: 1 }]}>
+                      <Text style={styles.inputLabel}>
+                        Số điện thoại <Text style={styles.requiredStar}>*</Text>
+                      </Text>
+                      <TextInput
+                        style={[styles.modalInput, modalErrors.phone ? styles.modalInputError : null]}
+                        value={borrowerPhone}
+                        onChangeText={(t) => {
+                          setBorrowerPhone(t);
+                          if (modalErrors.phone) setModalErrors((prev) => ({ ...prev, phone: '' }));
+                        }}
+                        placeholder="0912..."
+                        placeholderTextColor={colors.textMuted}
+                        keyboardType="phone-pad"
+                      />
+                      {modalErrors.phone && <Text style={styles.modalErrorText}>{modalErrors.phone}</Text>}
+                    </View>
+                  </View>
+
+                  {/* Số lượng mượn */}
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.inputLabel}>
+                      Số lượng mượn (cuốn) <Text style={styles.requiredStar}>*</Text>
+                    </Text>
+                    <TextInput
+                      style={[styles.modalInput, modalErrors.count ? styles.modalInputError : null]}
+                      value={borrowCountStr}
+                      onChangeText={(t) => {
+                        const clean = t.replace(/[^0-9]/g, '');
+                        setBorrowCountStr(clean);
+                        if (modalErrors.count) setModalErrors((prev) => ({ ...prev, count: '' }));
+                      }}
+                      placeholder={`1 đến ${remaining}`}
+                      placeholderTextColor={colors.textMuted}
+                      keyboardType="numeric"
+                    />
+                    {modalErrors.count && <Text style={styles.modalErrorText}>{modalErrors.count}</Text>}
+                  </View>
+
+                  {/* Ngày mượn & Ngày hẹn trả */}
+                  <View style={styles.twoColRow}>
+                    <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
+                      <Text style={styles.inputLabel}>
+                        Ngày mượn <Text style={styles.requiredStar}>*</Text>
+                      </Text>
+                      <TextInput
+                        style={[styles.modalInput, modalErrors.borrowDate ? styles.modalInputError : null]}
+                        value={borrowDate}
+                        onChangeText={(t) => {
+                          setBorrowDate(t);
+                          if (modalErrors.borrowDate) setModalErrors((prev) => ({ ...prev, borrowDate: '' }));
+                        }}
+                        placeholder="DD/MM/YYYY"
+                        placeholderTextColor={colors.textMuted}
+                      />
+                      {modalErrors.borrowDate && <Text style={styles.modalErrorText}>{modalErrors.borrowDate}</Text>}
+                    </View>
+
+                    <View style={[styles.inputGroup, { flex: 1 }]}>
+                      <Text style={styles.inputLabel}>
+                        Ngày hẹn trả <Text style={styles.requiredStar}>*</Text>
+                      </Text>
+                      <TextInput
+                        style={[styles.modalInput, modalErrors.dueDate ? styles.modalInputError : null]}
+                        value={dueDate}
+                        onChangeText={(t) => {
+                          setDueDate(t);
+                          if (modalErrors.dueDate) setModalErrors((prev) => ({ ...prev, dueDate: '' }));
+                        }}
+                        placeholder="DD/MM/YYYY"
+                        placeholderTextColor={colors.textMuted}
+                      />
+                      {modalErrors.dueDate && <Text style={styles.modalErrorText}>{modalErrors.dueDate}</Text>}
+                    </View>
+                  </View>
+                </ScrollView>
+
+                {/* Nút hành động Modal */}
                 <View style={styles.modalActions}>
                   <TouchableOpacity
                     style={styles.modalCancelBtn}
@@ -612,7 +762,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     marginTop: 5,
   },
-  // Danh sách bạn đọc
+  // Danh sách người đang mượn
   borrowersCard: {
     backgroundColor: colors.card,
     borderRadius: 14,
@@ -633,7 +783,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.surface,
   },
@@ -641,28 +791,45 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 10,
   },
-  borrowerName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 2,
-  },
-  borrowerMeta: {
+  borrowerTop: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 3,
   },
-  borrowerPhone: {
+  borrowerName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+    marginRight: 8,
+  },
+  countBadge: {
+    backgroundColor: colors.warningLight,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  countBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: colors.warning,
+  },
+  borrowerSub: {
     fontSize: 12,
     color: colors.textSecondary,
+    marginBottom: 3,
   },
-  borrowDate: {
-    fontSize: 12,
+  highlightText: {
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  dateInfoText: {
+    fontSize: 11,
     color: colors.textMuted,
   },
   inlineReturnBtn: {
     backgroundColor: colors.surface,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: colors.border,
@@ -672,7 +839,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.textSecondary,
   },
-  // Nút Sửa & Xoá trên cùng 1 dòng, gọn nhỏ
+  // Nút Sửa & Xoá trên cùng 1 dòng
   compactActionsRow: {
     flexDirection: 'row',
     gap: 10,
@@ -714,7 +881,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: colors.error,
   },
-  // Modal mượn sách
+  // Modal cho mượn
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(15, 23, 42, 0.5)',
@@ -748,16 +915,16 @@ const styles = StyleSheet.create({
   modalBookTitle: {
     fontSize: 13,
     color: colors.textSecondary,
-    marginBottom: 16,
-  },
-  inputGroup: {
     marginBottom: 14,
   },
+  inputGroup: {
+    marginBottom: 12,
+  },
   inputLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 6,
+    marginBottom: 5,
   },
   requiredStar: {
     color: colors.error,
@@ -768,8 +935,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
+    paddingVertical: 9,
+    fontSize: 13,
     color: colors.text,
   },
   modalInputError: {
@@ -779,13 +946,16 @@ const styles = StyleSheet.create({
   modalErrorText: {
     fontSize: 11,
     color: colors.error,
-    marginTop: 4,
+    marginTop: 3,
     fontWeight: '500',
+  },
+  twoColRow: {
+    flexDirection: 'row',
   },
   modalActions: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 8,
+    marginTop: 14,
   },
   modalCancelBtn: {
     flex: 1,

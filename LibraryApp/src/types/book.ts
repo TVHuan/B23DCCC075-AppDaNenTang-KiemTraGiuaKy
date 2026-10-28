@@ -2,9 +2,12 @@ export type BookCategory = 'Giáo trình' | 'Tiểu thuyết' | 'Khoa học' | '
 
 export interface BorrowRecord {
   id: string;
-  borrowerName: string;
-  borrowerPhone?: string;
-  borrowDate: string; // Ngày mượn (DD/MM/YYYY)
+  borrowerName: string;      // Họ và tên
+  studentId: string;         // Mã sinh viên
+  borrowerPhone: string;     // Số điện thoại
+  borrowDate: string;        // Ngày mượn (DD/MM/YYYY)
+  dueDate: string;           // Ngày hẹn trả (DD/MM/YYYY)
+  borrowCount: number;       // Số lượng cuốn mượn
 }
 
 export interface Book {
